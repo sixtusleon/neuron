@@ -7,20 +7,22 @@ from Crypto.Cipher import AES
 import hashlib
 import os
 import signal
+import time
 
 os.system("clear")
-print """
+print ("""
 	  ___  ___ __ _________  ___ 
 	 / _ \/ -_) // / __/ _ \/ _ \ 
 	/_//_/\__/\_,_/_/  \___/_//_/
 	server v 1.2 | susmithHCK
 	for queries: https://www.askthehackers.com
+	added Storage for Messages
 
-"""
+""")
 
 def sigint_handler(signum, frame):
-    print '\n user interrupt ! shutting down'
-    print "[info] shutting down NEURON \n\n"
+    print ('\n user interrupt ! shutting down')
+    print ("[info] shutting down NEURON \n\n")
     sys.exit()	
     
 signal.signal(signal.SIGINT, sigint_handler)
@@ -72,7 +74,7 @@ def chat_server():
 
     SOCKET_LIST.append(server_socket)
 
-    print "neuron server started on port " + str(PORT)
+    print ("neuron server started on port " + str(PORT))
 
     while 1:
 
@@ -83,19 +85,36 @@ def chat_server():
             if sock == server_socket:
                 sockfd, addr = server_socket.accept()
                 SOCKET_LIST.append(sockfd)
-                print "user (%s, %s) connected" % addr
+                print ("user (%s, %s) connected" % addr)
+
+                #Read messages from Store
+                try:
+                    message_store = open('message.store','r')
+                    messages = message_store.readlines()
+
+                    for m in messages:
+                        sockfd.send(m)
+                        time.sleep(0.01) #Sleep or to fast for socket
+                except:
+                    sockfd.send(encrypt(key,'No chat history available'))
 
                 broadcast(server_socket, sockfd, encrypt(key,"[%s:%s] entered our chatting room\n" % addr))
 
             else:
                 try:
                     data = sock.recv(RECV_BUFFER)
+
+                    #Save data in file
+                    message_store = open('message.store','a')
+                    message_store.write(data + '\n');
+                    message_store.close()
+
                     data = decrypt(key,data)
                     if data:
 
                         broadcast(server_socket, sock,encrypt(key,"\r" + data))
                         if VIEW == '1':
-                          print data
+                          print (data)
                     else:
 
                         if sock in SOCKET_LIST:
