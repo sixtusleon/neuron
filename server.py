@@ -60,6 +60,7 @@ HOST = config.get('config', 'HOST')
 PORT = int(config.get('config', 'PORT'))
 PASSWORD = config.get('config', 'PASSWORD')
 VIEW = str(config.get('config', 'VIEW'))
+PERSISTENT = str(config.get('config', 'PERSISTENT'))
 key = hasher(PASSWORD)
 SOCKET_LIST = []
 RECV_BUFFER = 4096
@@ -87,16 +88,16 @@ def chat_server():
                 SOCKET_LIST.append(sockfd)
                 print ("user (%s, %s) connected" % addr)
 
-                #Read messages from Store
-                try:
-                    message_store = open('message.store','r')
-                    messages = message_store.readlines()
+                if PERSISTENT == '1': #Read messages from Store
+                    try:
+                        message_store = open('message.store','r')
+                        messages = message_store.readlines()
 
-                    for m in messages:
-                        sockfd.send(m)
-                        time.sleep(0.01) #Sleep or to fast for socket
-                except:
-                    sockfd.send(encrypt(key,'No chat history available'))
+                        for m in messages:
+                            sockfd.send(m)
+                            time.sleep(0.01) #Sleep or to fast for socket
+                    except:
+                        sockfd.send(encrypt(key,'No chat history available'))
 
                 broadcast(server_socket, sockfd, encrypt(key,"[%s:%s] entered our chatting room\n" % addr))
 
@@ -104,10 +105,11 @@ def chat_server():
                 try:
                     data = sock.recv(RECV_BUFFER)
 
-                    #Save data in file
-                    message_store = open('message.store','a')
-                    message_store.write(data + '\n');
-                    message_store.close()
+                    if PERSISTENT == '1':
+                        #Save data in file
+                        message_store = open('message.store','a')
+                        message_store.write(data + '\n');
+                        message_store.close()
 
                     data = decrypt(key,data)
                     if data:
